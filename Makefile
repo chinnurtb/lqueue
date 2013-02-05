@@ -18,7 +18,8 @@ clean-all: clean
 CT_RUN = ct_run \
 	-pa ebin \
 	-dir test \
-	-logdir logs
+	-logdir logs \
+	-cover test/cover.spec
 
 test: clean compile
 	@mkdir -p logs/
