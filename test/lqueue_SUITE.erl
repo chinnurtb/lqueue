@@ -11,19 +11,23 @@
          end_per_group/2]).
 
 %% Tests.
--export([wrong_max_size/1,
+-export([creation/1,
          inspection/1,
          conversion/1,
          in_out/1,
-         in_out2/1]).
+         in_out2/1,
+         reverse/1,
+         join/1]).
 
 %% ct.
 all() ->
-    [wrong_max_size,
+    [creation,
      inspection,
      conversion,
      in_out,
-     in_out2].
+     in_out2,
+     reverse,
+     join].
 
 groups() ->
     [].
@@ -41,7 +45,7 @@ end_per_group(_GroupName, Config) ->
     Config.
 
 %% tests
-wrong_max_size(_Config) ->
+creation(_Config) ->
     Res1 = try lqueue:new(0) of
                _ ->
                    ok
@@ -159,4 +163,40 @@ in_out2(_Config) ->
                    E2
            end,
     empty = Res1 = Res2,
+    ok.
+
+reverse(_Config) ->
+    LQ0 = lqueue:new(1),
+    [] = lqueue:to_list(lqueue:reverse(LQ0)),
+    LQ1 = lqueue:from_list([1, 2, 3], 3),
+    [1, 2, 3] = lqueue:to_list(lqueue:reverse(lqueue:reverse(LQ1))),
+    LQ2 = {0, 1, not_list, []},
+    badarg = try
+                 lqueue:reverse(LQ2)
+             catch
+                 error:E ->
+                     E
+             end,
+    ok.
+
+join(_Config) ->
+    LQ0 = lqueue:from_list([a, b], 3),
+    LQ1 = lqueue:from_list([c, d], 2),
+    LQ2 = lqueue:join(LQ0, LQ1),
+    [a, b, c, d] = lqueue:to_list(LQ2),
+    4 = lqueue:len(LQ2),
+    5 = lqueue:max_len(LQ2),
+    LQ3 = lqueue:new(1),
+    LQ4 = lqueue:new(1),
+    LQ5 = lqueue:join(LQ3, LQ4),
+    [] = lqueue:to_list(LQ5),
+    0 = lqueue:len(LQ5),
+    2 = lqueue:max_len(LQ5),
+    LQ6 = {0, 0, [], []},
+    badarg = try
+                 lqueue:join(LQ5, LQ6)
+             catch
+                 error:E ->
+                     E
+             end,
     ok.

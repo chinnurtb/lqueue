@@ -24,7 +24,9 @@
          drop/1,
          drop_r/1]).
 
-%% @TODO reverse, join, split, filter
+%% @TODO split, filter
+-export([reverse/1,
+         join/2]).
 
 -include("lqueue.hrl").
 
@@ -202,6 +204,31 @@ drop_r({L, M, [], F}) when is_integer(L), is_integer(M), L > 0, M > 0, L =< M,
     drop_r({L, M, lists:reverse(F), []});
 drop_r(LQ) ->
     erlang:error(badarg, [LQ]).
+
+-spec reverse(lqueue()) -> lqueue().
+reverse({L, M, R, F}) when is_integer(L), is_integer(M), L >= 0, M > 0, L =< M,
+                           is_list(R), is_list(F) ->
+    {L, M, F, R};
+reverse(LQ) ->
+    erlang:error(badarg, [LQ]).
+
+-spec join(lqueue(), lqueue()) -> lqueue().
+join({L1, M1, R1, F1},
+      {0, M2, [], []}) when is_integer(L1), is_integer(M1), is_integer(M2),
+                            L1 > 0, M1 > 0, L1 =< M1, M2 > 0, is_list(R1), is_list(F1) ->
+    {L1, M1 + M2, R1, F1};
+join({0, M1, [], []},
+      {L2, M2, R2, F2}) when is_integer(M1), is_integer(L2), is_integer(M2),
+                             M1 > 0, L2 > 0, M2 > 0, L2 =< M2, is_list(R2), is_list(F2) ->
+    {L2, M1 + M2, R2, F2};
+join({L1, M1, R1, F1},
+     {L2, M2, R2, F2}) when is_integer(L1), is_integer(M1), is_integer(L2), is_integer(M2),
+                            L1 >= 0, M1 > 0, L1 =< M1, L2 >= 0, M2 > 0, L2 =< M2,
+                            is_list(R1), is_list(F1), is_list(R2), is_list(F2) ->
+    {L1 + L2, M1 + M2, R2, F1 ++ lists:reverse(R1, F2)};
+join(LQ1, LQ2) ->
+    erlang:error(badarg, [LQ1, LQ2]).
+
 
 %% Internal functions
 
