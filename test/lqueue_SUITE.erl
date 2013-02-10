@@ -46,26 +46,25 @@ end_per_group(_GroupName, Config) ->
 
 %% tests
 creation(_Config) ->
-    Res1 = try lqueue:new(0) of
-               _ ->
-                   ok
-           catch
-               error:E1 ->
-                   E1
+    badarg = try
+                 lqueue:new(0)
+             catch
+                 error:E1 ->
+                     E1
+             end,
+    badarg = try
+                 lqueue:new(-1)
+             catch
+                 error:E2 ->
+                     E2
            end,
-    Res2 = try lqueue:new(-1) of
-               _ ->
-                   ok
-           catch
-               error:E2 ->
-                   E2
-           end,
-    badarg = Res1 = Res2,
+    lqueue:new(1),
     ok.
 
 inspection(_Config) ->
     %% empty lqueue, max == 1
     LQ0 = lqueue:new(1),
+    true = lqueue:is_lqueue(LQ0),
     true = lqueue:is_empty(LQ0),
     false = lqueue:is_full(LQ0),
     1 = lqueue:max_len(LQ0),
@@ -73,6 +72,7 @@ inspection(_Config) ->
     false = lqueue:member(0, LQ0),
     %% 1 element, max == 1
     LQ1 = lqueue:in(atom, LQ0),
+    true = lqueue:is_lqueue(LQ1),
     false = lqueue:is_empty(LQ1),
     true = lqueue:is_full(LQ1),
     1 = lqueue:max_len(LQ1),
@@ -80,6 +80,7 @@ inspection(_Config) ->
     true = lqueue:member(atom, LQ1),
     %% 1 element, max == 1
     LQ2 = lqueue:in(-1, LQ1),
+    true = lqueue:is_lqueue(LQ2),
     false = lqueue:is_empty(LQ2),
     true = lqueue:is_full(LQ2),
     1 = lqueue:max_len(LQ2),
@@ -94,6 +95,38 @@ inspection(_Config) ->
     1 = lqueue:len(LQ4),
     true = lqueue:member("abc", LQ4),
     false = lqueue:member(1000, LQ4),
+    LQ5 = {0, 10, [], not_list},
+    false = lqueue:is_lqueue(LQ5),
+    badarg = try
+                 lqueue:is_empty(LQ5)
+             catch
+                 error:E1 ->
+                     E1
+             end,
+    badarg = try
+                 lqueue:is_full(LQ5)
+             catch
+                 error:E2 ->
+                     E2
+             end,
+    badarg = try
+                 lqueue:max_len(LQ5)
+             catch
+                 error:E3 ->
+                     E3
+             end,
+    badarg = try
+                 lqueue:len(LQ5)
+             catch
+                 error:E4 ->
+                     E4
+             end,
+    badarg = try
+                 lqueue:member(x, LQ5)
+             catch
+                 error:E5 ->
+                     E5
+             end,
     ok.
 
 conversion(_Config) ->
@@ -107,6 +140,21 @@ conversion(_Config) ->
     [1, 2, 3] = lqueue:to_list(lqueue:from_list(lqueue:to_list(LQ3), 3)),
     LQ4 = lqueue:from_list([["abc"], ["def"]], 10),
     [["abc"], ["def"]] = lqueue:to_list(LQ4),
+    LQ5 = lqueue:from_list([], 10),
+    [] = lqueue:to_list(LQ5),
+    LQ6 = {0, 0, [a, b, c], []},
+    badarg = try
+                 lqueue:to_list(LQ6)
+             catch
+                 error:E1 ->
+                     E1
+             end,
+    badarg = try
+                 lqueue:from_list([1,2], 1)
+             catch
+                 error:E2 ->
+                     E2
+             end,
     ok.
 
 in_out(_Config) ->
@@ -131,7 +179,45 @@ in_out(_Config) ->
     LQ11 = lqueue:in(80, LQ10),
     LQ12 = lqueue:in(90, LQ11),
     {{value, 90}, LQ13} = lqueue:out_r(LQ12),
-    {{value, 80}, _} = lqueue:out_r(LQ13),
+    {{value, 80}, LQ14} = lqueue:out_r(LQ13),
+    LQ15 = lqueue:in_r(atom1, LQ14),
+    LQ16 = lqueue:in_r(atom2, LQ15),
+    LQ17 = lqueue:in_r(atom3, LQ16),
+    LQ18 = lqueue:in_r(atom4, LQ17),
+    [atom4, atom3, atom2] = lqueue:to_list(LQ18),
+    {{value, atom4}, LQ19} = lqueue:out(LQ18),
+    {{value, atom3}, LQ20} = lqueue:out(LQ19),
+    {{value, atom2}, LQ21} = lqueue:out(LQ20),
+    {empty, _} = lqueue:out(LQ21),
+    {{value, atom2}, LQ22} = lqueue:out_r(LQ18),
+    {{value, atom3}, LQ23} = lqueue:out_r(LQ22),
+    {{value, atom4}, LQ24} = lqueue:out_r(LQ23),
+    {empty, _} = lqueue:out_r(LQ24),
+    LQ25 = {not_lqueue},
+    badarg = try
+                 lqueue:in("ABC", LQ25)
+             catch
+                 error:E1 ->
+                     E1
+             end,
+    badarg = try
+                 lqueue:in_r(x, LQ25)
+             catch
+                 error:E2 ->
+                     E2
+             end,
+    badarg = try
+                 lqueue:out(LQ25)
+             catch
+                 error:E3 ->
+                     E3
+             end,
+    badarg = try
+                 lqueue:out_r(LQ25)
+             catch
+                 error:E4 ->
+                     E4
+             end,
     ok.
 
 in_out2(_Config) ->
@@ -148,21 +234,29 @@ in_out2(_Config) ->
     LQ4 = lqueue:drop(LQ3),
     0 = lqueue:len(LQ4),
     empty = lqueue:peek(LQ4),
-    Res1 = try lqueue:drop(LQ4) of
-               _ ->
-                   no_error
-           catch
-               error:E1 ->
-                   E1
-           end,
-    Res2 = try lqueue:drop_r(LQ4) of
-               _ ->
-                   no_error
-           catch
-               error:E2 ->
-                   E2
-           end,
-    empty = Res1 = Res2,
+    LQ5 = lqueue:new(3),
+    LQ6 = lqueue:in(1, LQ5),
+    1 = lqueue:get(LQ6),
+    LQ7 = lqueue:in(2, LQ6),
+    1 = lqueue:get(LQ7),
+    LQ8 = lqueue:in(3, LQ7),
+    1 = lqueue:get(LQ8),
+    3 = lqueue:get_r(LQ8),
+    LQ9 = lqueue:in(4, LQ8),
+    2 = lqueue:get(LQ9),
+    4 = lqueue:get_r(LQ9),
+    empty = try
+                lqueue:drop(LQ4)
+            catch
+                error:E1 ->
+                    E1
+            end,
+    empty = try
+               lqueue:drop_r(LQ4)
+            catch
+                error:E2 ->
+                    E2
+            end,
     ok.
 
 reverse(_Config) ->
