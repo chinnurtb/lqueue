@@ -117,7 +117,7 @@ in_r(X, {L, M, R, F}) when is_integer(L), is_integer(M), L >= 0, M > 0, L < M,
 in_r(X, {M, M, [_H | T], F}) when is_integer(M), M > 0, is_list(F) ->
     {M, M, T, [X | F]};
 in_r(X, {M, M, [], F}) when is_integer(M), M > 0, is_list(F) ->
-    in(X, {M, M, lists:reverse(F), []});
+    in_r(X, {M, M, lists:reverse(F), []});
 in_r(X, LQ) ->
     erlang:error(badarg, [X, LQ]).
 
